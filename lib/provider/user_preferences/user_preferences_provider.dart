@@ -12,6 +12,7 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/sourced_track/enums.dart';
 import 'package:spotube/utils/platform.dart';
+import 'package:spotube/utils/download_helper.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:open_file/open_file.dart';
 
@@ -68,15 +69,7 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
   }
 
   Future<String> _getDefaultDownloadDirectory() async {
-    if (kIsAndroid) return "/storage/emulated/0/Download/Spotube";
-
-    if (kIsMacOS) {
-      return join((await paths.getLibraryDirectory()).path, "Caches");
-    }
-
-    return paths.getDownloadsDirectory().then((dir) {
-      return join(dir!.path, "Spotube");
-    });
+    return await DownloadHelper.getDownloadPath();
   }
 
   Future<void> setData(PreferencesTableCompanion data) async {
@@ -96,17 +89,14 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
   }
 
   static Future<String> getMusicCacheDir() async {
-    if (kIsAndroid) {
-      final dir =
-          await paths.getExternalCacheDirectories().then((dirs) => dirs!.first);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      return join(dir.path, 'Cached Tracks');
+    final cachePath = await DownloadHelper.getCachePath();
+    final cachedTracksDir = Directory(join(cachePath, 'Cached Tracks'));
+    
+    if (!await cachedTracksDir.exists()) {
+      await cachedTracksDir.create(recursive: true);
     }
-
-    final dir = await paths.getApplicationCacheDirectory();
-    return join(dir.path, 'cached_tracks');
+    
+    return cachedTracksDir.path;
   }
 
   Future<void> openCacheFolder() async {
