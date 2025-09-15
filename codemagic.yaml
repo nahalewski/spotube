@@ -1,25 +1,36 @@
 workflows:
-  ios-build:
+  ios-debug:
     name: iOS Debug Build with Rust
     environment:
       flutter: stable
       xcode: latest
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+        - $HOME/.cargo
+        - $HOME/.rustup
     scripts:
       - name: Install Rust
         script: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          export PATH="$HOME/.cargo/bin:$PATH"
+          source $HOME/.cargo/env
+          rustup install stable
+          rustup target add aarch64-apple-ios x86_64-apple-ios
           rustc --version
           cargo --version
-      - name: Install CocoaPods
+      - name: Get Flutter dependencies
+        script: flutter pub get
+      - name: Clean and install CocoaPods
         script: |
           cd ios
           rm -rf Pods Podfile.lock
+          pod repo update
           pod install
           cd ..
       - name: Build iOS
-        script: |
-          flutter build ios --debug --no-codesign
+        script: flutter build ios --debug --no-codesign
     artifacts:
       - build/ios/iphoneos/*.app
       - build/ios/ipa/*.ipa
